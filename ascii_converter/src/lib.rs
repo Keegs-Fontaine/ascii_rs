@@ -1,6 +1,6 @@
-use std::{fs::File, io::BufWriter, io::Write};
+use wasm_bindgen::prelude::*;
 
-use image::ImageReader;
+use std::fmt::Write;
 
 use image::imageops;
 use image::Rgb;
@@ -32,31 +32,37 @@ impl AsciiPixel for Rgb<u8> {
     }
 }
 
-pub fn get_ascii_img(img_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let img = ImageReader::open(img_path)?.decode()?;
+#[wasm_bindgen]
+pub fn get_ascii_img(file_data: &[u8], scaling_factor: u32) -> String {
+    let img_res = image::load_from_memory(file_data);
+
     // It's not necessarily the best practice to do this, but I explicitly want the program to panic and error out if the image doesn't exist,
     // or if it can't decode it
 
-    let file = File::create("output.txt").unwrap();
-    let mut writer = BufWriter::new(file);
+    return match img_res {
+        Err(e) => format!("Err! Couldn't get image: {}", e),
+        Ok(img) => {
+            let mut ascii_str = String::new();
 
-    let resized = img.resize(
-        img.width() / 10,
-        img.height() / 10,
-        imageops::FilterType::Lanczos3,
-    );
+            let resized = img.resize(
+                img.width() / scaling_factor,
+                img.height() / scaling_factor,
+                imageops::FilterType::Lanczos3,
+            );
 
-    resized.to_rgb8().enumerate_pixels().for_each(|(x, _, p)| {
-        let ch = p.to_ch();
+            resized.to_rgb8().enumerate_pixels().for_each(|(x, _, p)| {
+                let ch = p.to_ch();
 
-        write!(writer, "{}", ch).expect("Err! Couldn't write char to file!");
+                write!(ascii_str, "{}", ch).expect("Err! Couldn't write char to file!");
 
-        if x == resized.width() - 1 {
-            writer
-                .write_all(b"\n")
-                .expect("Err! Couldn't write a newline char!");
+                if x == resized.width() - 1 {
+                    ascii_str
+                        .write_char('\n')
+                        .expect("Err! Couldn't write a newline char!");
+                }
+            });
+
+            ascii_str
         }
-    });
-
-    Ok(())
+    };
 }
