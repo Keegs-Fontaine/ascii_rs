@@ -5,6 +5,8 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+
 
 jobs:
   build:
@@ -28,4 +30,17 @@ jobs:
         version: 'latest'
 
     - name: Build the wasm package
-      run: cd ascii_converter && wasm-pack build --target web
+      run: ./build.sh
+
+    - name: Upload pkg artifact
+      uses: actions/upload-pages-artifact@v3
+      with: {path: './dist'} 
+      
+  deploy:
+    environment: {name: github-pages, url: ${{ steps.deployment.outputs.page_url }}}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: {pages: write, id-token: write}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
