@@ -7,40 +7,37 @@ on:
 
   workflow_dispatch:
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
 
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: wasm32-unknown-unknown
-        override: true
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: "latest"
 
-    - name: Install wasm-pack
-      uses: jetli/wasm-pack-action@v0.4.0
-      with:
-        version: 'latest'
+      - name: Build the wasm package
+        run: ./build.sh
 
-    - name: Build the wasm package
-      run: ./build.sh
+      - name: Upload pkg artifact
+        uses: actions/upload-pages-artifact@v3
+        with: { path: "./dist" }
 
-    - name: Upload pkg artifact
-      uses: actions/upload-pages-artifact@v3
-      with: {path: './dist'} 
-      
   deploy:
-    environment: {name: github-pages, url: ${{ steps.deployment.outputs.page_url }}}
-    needs: build
     runs-on: ubuntu-latest
-    permissions: {pages: write, id-token: write}
+    needs: build
+    permissions: { pages: write, id-token: write }
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
