@@ -2,26 +2,31 @@ import init, { get_ascii_img } from "./pkg/ascii_converter.js"
 
 await init()
 
-const fileUploadForm = document.querySelector(".file-upload")
-const fileInputEle = document.querySelector(".file-input")
-const scaleFactor = document.querySelector(".scale-input")
+const videoEle = document.createElement("video")
+const canvas = document.createElement("canvas")
+const ctx = canvas.getContext("2d")
 
-fileUploadForm.addEventListener("submit", e => {
-    e.preventDefault()
-
-    const file = fileInputEle.files[0];
-
-    const fileReader = new FileReader()
-
-    fileReader.onload = (e) => {
-        console.log('File content loaded:', e.target.result);
-        const arrBuf = new Uint8Array(e.target.result)
-
-        const ascii = get_ascii_img(arrBuf, Number(scaleFactor.value))
-
-        document.querySelector(".ascii-output").innerText = ascii
-        console.log(ascii)
-    }
-
-    fileReader.readAsArrayBuffer(file)
+const stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: true,
 })
+
+videoEle.srcObject = stream;
+videoEle.play()
+
+function getFrame() {
+    canvas.width = videoEle.videoWidth;
+    canvas.height = videoEle.videoHeight;
+    ctx.drawImage(videoEle, 0, 0);
+
+
+    canvas.toBlob((b => {
+        b.bytes().then(bytes => {
+            const a = get_ascii_img(bytes)
+            console.log(a)
+        })
+    }), "image/png", 1)
+
+}
+
+setInterval(() => getFrame(), 1000)
